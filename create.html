@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>팀 진단 만들기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F7; --paper-2:#FFFFFF; --ink:#1B2228; --ink-soft:#4B5560;
+    --steel:#3C5069; --steel-light:#7C93A8; --rust:#B8563A; --rust-bg:#FBEDE8;
+    --sage:#4F7D6E; --sage-bg:#EAF2EF; --grid:#DCE2E7; --radius:6px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans KR', sans-serif; line-height:1.6; }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  #app{ max-width:520px; margin:0 auto; padding:36px 20px 64px; }
+  .sheet-no{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.1em; color:var(--steel-light); text-transform:uppercase; margin-bottom:6px; }
+  h1{ font-size:22px; font-weight:700; margin:0 0 12px; }
+  p.lead{ font-size:14.5px; color:var(--ink-soft); margin:0 0 24px; }
+  .card{ background:var(--paper-2); border:1px solid var(--grid); border-radius:var(--radius); padding:22px; margin-bottom:16px; }
+  label.field-label{ display:block; font-size:13px; font-weight:600; color:var(--steel); margin-bottom:6px; }
+  input[type="text"], input[type="number"]{
+    width:100%; font-family:'IBM Plex Sans KR', sans-serif; font-size:15px;
+    padding:12px 14px; border:1px solid var(--grid); border-radius:8px;
+    background:var(--paper); color:var(--ink); margin-bottom:18px;
+  }
+  input:focus{ outline:2px solid var(--steel); outline-offset:1px; }
+  button.primary{
+    width:100%; background:var(--steel); color:#fff; border:none; border-radius:8px;
+    font-family:'IBM Plex Sans KR', sans-serif; font-size:16px; font-weight:600;
+    padding:14px; cursor:pointer;
+  }
+  button.primary:hover{ background:#2E3F54; }
+  button.primary:disabled{ background:var(--grid); color:var(--steel-light); cursor:not-allowed; }
+  button.primary:focus-visible{ outline:3px solid var(--sage); outline-offset:2px; }
+  .error-box{ background:var(--rust-bg); border:1px solid var(--rust); color:#7A3A22; font-size:13.5px; padding:12px 14px; border-radius:8px; margin-bottom:16px; }
+  .warn-box{
+    background:var(--rust-bg); border:1px solid var(--rust); border-radius:var(--radius);
+    padding:14px 16px; font-size:13px; color:#7A3A22; margin-bottom:20px; line-height:1.55;
+  }
+  .warn-box strong{ display:block; font-size:12px; letter-spacing:0.04em; margin-bottom:4px; font-family:'IBM Plex Mono', monospace; }
+  .field-row{ margin-bottom:16px; }
+  .field-row .field-label{ margin-bottom:8px; }
+  .link-box{
+    display:flex; align-items:center; gap:8px; background:var(--paper); border:1px solid var(--grid);
+    border-radius:6px; padding:10px 12px; margin-bottom:10px;
+  }
+  .link-box .val{ flex:1; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--ink-soft); overflow-x:auto; white-space:nowrap; }
+  .link-box button{
+    flex-shrink:0; background:var(--steel); color:#fff; border:none; border-radius:5px;
+    font-family:'IBM Plex Sans KR', sans-serif; font-size:12.5px; padding:7px 12px; cursor:pointer;
+  }
+  .link-box button.copied{ background:var(--sage); }
+  .code-display{
+    font-family:'IBM Plex Mono', monospace; font-size:30px; font-weight:600; letter-spacing:0.12em;
+    color:var(--steel); text-align:center; padding:16px; background:var(--paper);
+    border:1.5px dashed var(--steel-light); border-radius:8px; margin-bottom:20px;
+  }
+  .sub-label{ font-size:12px; color:var(--steel-light); margin-bottom:4px; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* 배포 전 반드시 교체 */
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycby9QuZ9JW_bGM3phwlhUhDmYoxWQO5vBelzu6Fq84zQ0fEwGLFmy89jGRUFa95Vaew6LQ/exec";
+/* team-member.html / team-report.html이 실제로 호스팅되는 경로로 교체 */
+const MEMBER_PAGE_URL = "https://calmnez.github.io/team-enneagram/";
+const REPORT_PAGE_URL = "https://calmnez.github.io/team-enneagram/report.html";
+
+const state = {
+  screen: "form", // form | success | error
+  teamName: "",
+  memberCount: "",
+  submitting: false,
+  errorMsg: "",
+  result: null, // { team_id, leader_key }
+};
+
+function render() {
+  const app = document.getElementById("app");
+  if (state.screen === "form") app.innerHTML = renderForm();
+  else if (state.screen === "success") app.innerHTML = renderSuccess();
+  bindEvents();
+}
+
+function renderForm() {
+  return `
+    <div class="sheet-no">TEAM DIAGNOSTIC · SETUP</div>
+    <h1>팀 진단 만들기</h1>
+    <p class="lead">팀 이름을 입력하면 팀원용 링크와 리포트 링크가 각각 발급됩니다.</p>
+    ${state.errorMsg ? `<div class="error-box">${state.errorMsg}</div>` : ""}
+    <div class="card">
+      <label class="field-label" for="teamName">팀 이름</label>
+      <input type="text" id="teamName" maxlength="30" value="${state.teamName}" placeholder="예: MADLeap 콘텐츠팀">
+      <label class="field-label" for="memberCount">예상 인원 (선택)</label>
+      <input type="number" id="memberCount" min="1" max="100" value="${state.memberCount}" placeholder="예: 6">
+      <button class="primary" id="createBtn" ${state.submitting ? "disabled" : ""}>${state.submitting ? "생성 중…" : "팀 만들기"}</button>
+    </div>
+  `;
+}
+
+function renderSuccess() {
+  const r = state.result;
+  const memberLink = `${MEMBER_PAGE_URL}?t=${r.team_id}`;
+  const leaderLink = `${REPORT_PAGE_URL}?t=${r.team_id}&k=${r.leader_key}`;
+
+  return `
+    <div class="sheet-no">TEAM DIAGNOSTIC · READY</div>
+    <h1>${escapeHtml(state.teamName)}</h1>
+    <p class="lead">아래 코드와 링크로 팀원을 초대하세요.</p>
+
+    <div class="warn-box">
+      <strong>보관 안내</strong>
+      리포트 링크(팀장 키 포함)는 이 화면을 벗어나면 다시 확인할 수 없습니다. 지금 복사해 안전한 곳에 저장하세요.
+    </div>
+
+    <div class="card">
+      <div class="sub-label">팀 코드</div>
+      <div class="code-display mono">${r.team_id}</div>
+
+      <div class="sub-label">팀원용 검사 링크 — 이 링크를 팀원들에게 공유하세요</div>
+      <div class="link-box">
+        <span class="val mono">${memberLink}</span>
+        <button data-copy="${memberLink}">복사</button>
+      </div>
+
+      <div class="sub-label" style="margin-top:14px;">리포트 링크 (팀장 전용) — 최소 4명 응답 후 열람 가능</div>
+      <div class="link-box">
+        <span class="val mono">${leaderLink}</span>
+        <button data-copy="${leaderLink}">복사</button>
+      </div>
+    </div>
+  `;
+}
+
+function bindEvents() {
+  const createBtn = document.getElementById("createBtn");
+  if (createBtn) createBtn.addEventListener("click", onCreate);
+
+  const teamNameInput = document.getElementById("teamName");
+  if (teamNameInput) teamNameInput.addEventListener("input", (e) => { state.teamName = e.target.value; });
+
+  const memberCountInput = document.getElementById("memberCount");
+  if (memberCountInput) memberCountInput.addEventListener("input", (e) => { state.memberCount = e.target.value; });
+
+  document.querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", () => copyToClipboard(btn));
+  });
+}
+
+async function onCreate() {
+  state.errorMsg = "";
+  if (!state.teamName.trim()) {
+    state.errorMsg = "팀 이름을 입력해 주세요.";
+    render();
+    return;
+  }
+
+  state.submitting = true;
+  render();
+
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "createTeam",
+        team_name: state.teamName,
+        member_count_expected: state.memberCount || undefined,
+      }),
+    });
+    const json = await res.json();
+
+    if (!json.ok) {
+      state.errorMsg = "팀을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      state.submitting = false;
+      render();
+      return;
+    }
+
+    state.result = { team_id: json.team_id, leader_key: json.leader_key };
+    state.submitting = false;
+    state.screen = "success";
+    render();
+  } catch (err) {
+    state.errorMsg = "서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.";
+    state.submitting = false;
+    render();
+  }
+}
+
+function copyToClipboard(btn) {
+  const text = btn.getAttribute("data-copy");
+  navigator.clipboard.writeText(text).then(() => {
+    const original = btn.textContent;
+    btn.textContent = "복사됨";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = original; btn.classList.remove("copied"); }, 1500);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+render();
+</script>
+</body>
+</html>
