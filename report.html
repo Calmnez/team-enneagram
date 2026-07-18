@@ -130,11 +130,7 @@
     background:var(--rust); color:#fff; padding:3px 8px; border-radius:3px;
   }
   /* --- 게이지 3연 --- */
-  .gauge-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
-  .gauge-col{ text-align:center; }
-  .gauge-svg{ width:100%; height:auto; }
-  .gauge-label{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
-  .gauge-value{ font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; }
+  /* --- 압박 시뮬레이션 게이지: S-04 섹션 제거로 현재 미사용 --- */
   /* --- 서술 --- */
   .narrative p{ margin:0 0 14px; font-size:14.5px; }
   .narrative .heading-line{ font-weight:700; color:var(--steel); margin:20px 0 8px; font-size:14.5px; }
@@ -238,7 +234,6 @@ function renderReport() {
     ${renderDisclaimer()}
     ${renderComposition(report)}
     ${renderFriction(report)}
-    ${renderPressure(report)}
     ${renderNarrative(narrative)}
     ${renderFooter()}
   `;
@@ -377,88 +372,10 @@ function connectorSVG(score) {
   `;
 }
 
-function renderPressure(report) {
-  const b = report.baseline, d = report.deadline, c = report.crisis;
-  const maxLoad = Math.max(b.totalLoad, d.pressure.totalLoad, c.totalLoad) * 1.15;
-
-  const gauges = `
-    <div class="gauge-grid">
-      <div class="gauge-col">
-        ${gaugeSVG(b.totalLoad, maxLoad, "#3C5069")}
-        <div class="gauge-value mono">${b.totalLoad.toFixed(1)}</div>
-        <div class="gauge-label">평시<br><span style="font-size:10.5px;">지금 이대로</span></div>
-      </div>
-      <div class="gauge-col">
-        ${gaugeSVG(d.pressure.totalLoad, maxLoad, "#B8563A")}
-        <div class="gauge-value mono">${d.pressure.totalLoad.toFixed(1)}</div>
-        <div class="gauge-label">마감 임박<br><span style="font-size:10.5px;">다들 예민해진 상태</span></div>
-      </div>
-      <div class="gauge-col">
-        ${gaugeSVG(c.totalLoad, maxLoad, "#B8563A")}
-        <div class="gauge-value mono">${c.totalLoad.toFixed(1)}</div>
-        <div class="gauge-label">위기 상황<br><span style="font-size:10.5px;">급박한 상황</span></div>
-      </div>
-    </div>
-  `;
-
-  const cs = d.centerShift.pressure;
-  const shiftLine = (label, val) => `${label} ${val >= 0 ? "+" : ""}${Math.round(val*100)}%p`;
-  const centerShiftText = `${shiftLine(CENTER_NAME.gut, cs.gut)} · ${shiftLine(CENTER_NAME.heart, cs.heart)} · ${shiftLine(CENTER_NAME.head, cs.head)}`;
-
-  const emergentCards = d.pressure.emergentFrictions.length
-    ? d.pressure.emergentFrictions.map((f) => frictionCard(f, true)).join("")
-    : `<p style="font-size:13.5px; color:var(--ink-soft);">평시 대비 새로 등장한 마찰 조합은 없습니다.</p>`;
-
-  return `
-    <section>
-      <div class="sheet-no">S-04</div>
-      <h2>마감이 다가오면 팀은 어떻게 달라질까</h2>
-      <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 16px; line-height:1.6;">
-        아래 세 그래프는 같은 팀을 두고 '지금 이대로', '마감을 앞두고 다들 예민해졌을 때', '정말 급한 위기 상황일 때'를 각각 가정해서 갈등 가능성을 계산해 본 것입니다.
-        숫자 자체의 크기는 팀마다 기준이 달라 절대적인 의미는 없고, 오른쪽으로 갈수록(마감 임박, 위기 상황) 바늘이 얼마나 더 움직이는지를 보면 됩니다.
-      </p>
-      <div class="card">
-        ${gauges}
-        <div class="meta-line" style="margin-bottom:0;">마감이 다가오면 — ${centerShiftText}</div>
-      </div>
-      <div style="height:20px"></div>
-      <h2 style="font-size:15px;">마감이 다가오면 새로 생기는 갈등</h2>
-      ${emergentCards}
-    </section>
-  `;
-}
-
-function gaugeSVG(value, maxValue, color) {
-  const r = 62, cx = 82, cy = 72;
-  const frac = maxValue > 0 ? Math.max(0, Math.min(1, value / maxValue)) : 0;
-  const angle = 180 - frac * 180;
-  const rad = (angle * Math.PI) / 180;
-  const nx = cx + (r - 10) * Math.cos(rad);
-  const ny = cy - (r - 10) * Math.sin(rad);
-
-  let ticks = "";
-  for (let t = 0; t <= 4; t++) {
-    const tf = t / 4;
-    const ta = ((180 - tf * 180) * Math.PI) / 180;
-    const x1t = cx + r * Math.cos(ta), y1t = cy - r * Math.sin(ta);
-    const x2t = cx + (r - 7) * Math.cos(ta), y2t = cy - (r - 7) * Math.sin(ta);
-    ticks += `<line x1="${x1t.toFixed(1)}" y1="${y1t.toFixed(1)}" x2="${x2t.toFixed(1)}" y2="${y2t.toFixed(1)}" stroke="#DCE2E7" stroke-width="2"/>`;
-  }
-
-  return `
-    <svg viewBox="0 0 164 90" class="gauge-svg">
-      <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#DCE2E7" stroke-width="7" stroke-linecap="round"/>
-      ${ticks}
-      <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>
-      <circle cx="${cx}" cy="${cy}" r="5" fill="${color}"/>
-    </svg>
-  `;
-}
-
 function renderNarrative(narrative) {
   return `
     <section>
-      <div class="sheet-no">S-05</div>
+      <div class="sheet-no">S-04</div>
       <h2>종합 서술</h2>
       <div class="card narrative">${formatNarrative(narrative)}</div>
     </section>
