@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>팀 에니어그램 진단 참여</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F7;
+    --paper-2:#FFFFFF;
+    --ink:#1B2228;
+    --ink-soft:#4B5560;
+    --steel:#3C5069;
+    --steel-light:#7C93A8;
+    --rust:#B8563A;
+    --sage:#4F7D6E;
+    --grid:#DCE2E7;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans KR', sans-serif;
+    line-height:1.6;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  #app{
+    max-width:480px;
+    margin:0 auto;
+    padding:32px 20px 64px;
+    min-height:100vh;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    color:var(--steel-light);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  h1{
+    font-size:22px;
+    font-weight:700;
+    margin:0 0 12px;
+    color:var(--ink);
+  }
+  p.lead{
+    font-size:15px;
+    color:var(--ink-soft);
+    margin:0 0 24px;
+  }
+  .card{
+    background:var(--paper-2);
+    border:1px solid var(--grid);
+    border-radius:var(--radius);
+    padding:24px;
+    margin-bottom:16px;
+  }
+  label.field-label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--steel);
+    margin-bottom:6px;
+  }
+  input[type="text"]{
+    width:100%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:16px;
+    padding:12px 14px;
+    border:1px solid var(--grid);
+    border-radius:8px;
+    background:var(--paper);
+    color:var(--ink);
+    margin-bottom:18px;
+  }
+  input[type="text"]:focus{
+    outline:2px solid var(--steel);
+    outline-offset:1px;
+  }
+  input[type="text"].code-input{
+    text-transform:uppercase;
+    letter-spacing:0.15em;
+    font-size:18px;
+  }
+  button.primary{
+    width:100%;
+    background:var(--steel);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    font-family:'IBM Plex Sans KR', sans-serif;
+    font-size:16px;
+    font-weight:600;
+    padding:14px;
+    cursor:pointer;
+    transition:background 0.15s ease;
+  }
+  button.primary:hover{background:#2E3F54;}
+  button.primary:disabled{background:var(--grid); color:var(--steel-light); cursor:not-allowed;}
+  button.primary:focus-visible{outline:3px solid var(--sage); outline-offset:2px;}
+  button.ghost{
+    width:100%;
+    background:transparent;
+    color:var(--steel);
+    border:1px solid var(--grid);
+    border-radius:8px;
+    font-family:'IBM Plex Sans KR', sans-serif;
+    font-size:15px;
+    padding:12px;
+    cursor:pointer;
+    margin-top:10px;
+  }
+  .error-box{
+    background:#FBEDE8;
+    border:1px solid var(--rust);
+    color:#8C3D24;
+    font-size:13.5px;
+    padding:12px 14px;
+    border-radius:8px;
+    margin-bottom:16px;
+  }
+  .progress-track{
+    height:4px;
+    background:var(--grid);
+    border-radius:2px;
+    overflow:hidden;
+    margin-bottom:8px;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--steel);
+    transition:width 0.2s ease;
+  }
+  .progress-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--steel-light);
+    margin-bottom:28px;
+    text-align:right;
+  }
+  .question-text{
+    font-size:18px;
+    font-weight:600;
+    line-height:1.5;
+    margin-bottom:28px;
+    min-height:80px;
+  }
+  .likert-row{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .likert-btn{
+    flex:1;
+    aspect-ratio:1;
+    border-radius:50%;
+    border:1.5px solid var(--grid);
+    background:var(--paper-2);
+    cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--ink-soft);
+    transition:all 0.12s ease;
+  }
+  .likert-btn:hover{border-color:var(--steel-light);}
+  .likert-btn.selected{
+    background:var(--steel);
+    border-color:var(--steel);
+    color:#fff;
+  }
+  .likert-labels{
+    display:flex;
+    justify-content:space-between;
+    font-size:11px;
+    color:var(--steel-light);
+    margin-bottom:32px;
+  }
+  .nav-row{
+    display:flex;
+    gap:10px;
+  }
+  .nav-row button.ghost{margin-top:0;}
+  .result-badge{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:20px;
+  }
+  .result-number{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:36px;
+    font-weight:600;
+    color:var(--steel);
+    background:var(--paper);
+    border:2px solid var(--steel);
+    border-radius:50%;
+    width:64px;
+    height:64px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .result-nick{
+    font-size:20px;
+    font-weight:700;
+  }
+  .result-wing{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--steel-light);
+  }
+  .result-line{
+    font-size:14.5px;
+    color:var(--ink-soft);
+    margin-bottom:20px;
+  }
+  .consent-row{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--paper);
+    border:1px solid var(--grid);
+    border-radius:8px;
+    padding:14px;
+    margin-bottom:20px;
+  }
+  .consent-row input{margin-top:3px;}
+  .consent-row span{font-size:13px; color:var(--ink-soft); line-height:1.5;}
+  .success-icon{
+    width:48px; height:48px;
+    border-radius:50%;
+    background:var(--sage);
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px;
+    margin-bottom:20px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+ * 설정 — 배포 전 반드시 교체
+ * ========================================================== */
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycby9QuZ9JW_bGM3phwlhUhDmYoxWQO5vBelzu6Fq84zQ0fEwGLFmy89jGRUFa95Vaew6LQ/exec";
+
+/* ============================================================
+ * 유형 정보 (원본 문구 — 특정 검사 도구 인용 아님)
+ * ========================================================== */
+const TYPE_INFO = {
+  1: { nick: "개혁가",       line: "무엇이 옳은지 알고, 그것을 지키려 합니다." },
+  2: { nick: "조력가",       line: "사람들에게 필요한 존재가 되고 싶어합니다." },
+  3: { nick: "성취자",       line: "목표를 향해 효율적으로 나아가고, 그 결과로 인정받고 싶어합니다." },
+  4: { nick: "예술가",       line: "남들과 다른 자신만의 진짜 모습을 찾고 표현하려 합니다." },
+  5: { nick: "탐구자",       line: "충분히 이해한 뒤에 움직이고, 자신만의 공간을 지키려 합니다." },
+  6: { nick: "충실한 사람",  line: "안전과 신뢰를 확보하기 위해 신중하게 대비합니다." },
+  7: { nick: "열정가",       line: "새로운 가능성과 즐거움을 향해 계속 나아가려 합니다." },
+  8: { nick: "도전자",       line: "자기 삶의 주도권을 지키고, 정면으로 부딪히는 것을 두려워하지 않습니다." },
+  9: { nick: "평화주의자",   line: "갈등을 피하고 주변과 조화를 이루려 합니다." },
+};
+
+/* 유형별 4문항씩, 원저작물이 아닌 자체 작성 문구 */
+const TYPE_STATEMENTS = {
+  1: [
+    "일을 할 때 '올바른 방식'이 있다고 믿고 그것을 따르려 한다",
+    "실수나 허술함을 보면 지적하고 싶어진다",
+    "스스로에게도 남에게도 높은 기준을 적용한다",
+    "규칙이나 원칙이 무너지는 상황을 보면 불편하다",
+  ],
+  2: [
+    "다른 사람이 무엇을 필요로 하는지 먼저 살핀다",
+    "내가 도움이 되지 못하면 내 존재 가치가 흔들리는 기분이 든다",
+    "사람들에게 다가가 챙겨주는 것이 자연스럽다",
+    "내가 준 만큼 상대가 알아주길 은근히 기대한다",
+  ],
+  3: [
+    "목표를 정하면 효율적으로 빠르게 성과를 내고 싶다",
+    "다른 사람에게 어떻게 보이는지가 신경 쓰인다",
+    "실패하거나 정체된 모습을 보이는 게 두렵다",
+    "일의 결과와 속도를 우선시하는 편이다",
+  ],
+  4: [
+    "나는 남들과는 다른 특별한 존재라고 느낀다",
+    "내 감정을 깊이 들여다보고 표현하는 걸 중요하게 여긴다",
+    "평범하거나 틀에 박힌 것에 거부감이 든다",
+    "무언가 결핍되어 있다는 느낌이 자주 든다",
+  ],
+  5: [
+    "결정하기 전에 충분히 이해하고 분석하고 싶다",
+    "혼자만의 시간과 공간이 꼭 필요하다",
+    "감정이나 에너지를 과하게 요구받으면 부담스럽다",
+    "아는 것이 곧 자신감의 원천이다",
+  ],
+  6: [
+    "최악의 상황을 미리 대비하는 편이다",
+    "믿을 수 있는 사람이나 시스템이 있어야 안심이 된다",
+    "결정을 내리기 전에 여러 번 재확인한다",
+    "권위나 확신에 찬 태도를 접하면 의심부터 든다",
+  ],
+  7: [
+    "새롭고 재미있는 경험을 계속 찾고 싶다",
+    "지루하거나 답답한 상황은 최대한 피하고 싶다",
+    "부정적인 감정은 빨리 전환해서 벗어나려 한다",
+    "한 가지에 얽매이기보다 여러 가능성을 열어두고 싶다",
+  ],
+  8: [
+    "내 삶을 스스로 통제하는 것이 중요하다",
+    "약해 보이거나 남에게 휘둘리는 상황을 참기 어렵다",
+    "갈등이 생기면 피하기보다 정면으로 부딪힌다",
+    "내가 옳다고 생각하면 강하게 밀어붙인다",
+  ],
+  9: [
+    "갈등이나 마찰을 최대한 피하고 싶다",
+    "내 의견보다 주변 분위기에 맞추는 게 편하다",
+    "무언가 결정할 때 좀처럼 서두르지 않는다",
+    "내 존재감을 크게 드러내지 않는 편이다",
+  ],
+};
+
+/* 4라운드 순열 — 같은 유형 문항이 연달아 나오지 않도록 섞은 순서 */
+const ROUND_ORDER = [
+  [3, 7, 1, 9, 4, 6, 2, 8, 5],
+  [6, 2, 9, 4, 8, 1, 5, 3, 7],
+  [8, 5, 2, 7, 3, 9, 4, 1, 6],
+  [1, 4, 8, 6, 2, 5, 9, 7, 3],
+];
+
+function buildQuestions() {
+  const q = [];
+  ROUND_ORDER.forEach((order, roundIdx) => {
+    order.forEach((type) => {
+      q.push({ type, text: TYPE_STATEMENTS[type][roundIdx] });
+    });
+  });
+  return q;
+}
+const QUESTIONS = buildQuestions(); // 36문항
+
+/* ============================================================
+ * 상태
+ * ========================================================== */
+const params = new URLSearchParams(location.search);
+const state = {
+  screen: "intro", // intro | quiz | result | submitted | error
+  teamId: (params.get("t") || "").toUpperCase(),
+  teamName: "",
+  nickname: "",
+  qIndex: 0,
+  answers: new Array(QUESTIONS.length).fill(0),
+  mainType: null,
+  wing: null,
+  consent: false,
+  errorMsg: "",
+  submitting: false,
+};
+
+function render() {
+  const app = document.getElementById("app");
+  if (state.screen === "intro") app.innerHTML = renderIntro();
+  else if (state.screen === "quiz") app.innerHTML = renderQuiz();
+  else if (state.screen === "result") app.innerHTML = renderResult();
+  else if (state.screen === "submitted") app.innerHTML = renderSubmitted();
+  bindEvents();
+}
+
+/* ---------------- 화면: 시작 ---------------- */
+function renderIntro() {
+  return `
+    <div class="eyebrow">TEAM DIAGNOSTIC · 01</div>
+    <h1>팀 에니어그램 진단</h1>
+    <p class="lead">팀장에게 받은 코드와 닉네임을 입력하고 검사를 시작하세요. 개인 결과는 먼저 본인에게만 표시됩니다.</p>
+    ${state.errorMsg ? `<div class="error-box">${state.errorMsg}</div>` : ""}
+    <div class="card">
+      <label class="field-label" for="teamCode">팀 코드</label>
+      <input type="text" id="teamCode" class="code-input" maxlength="6" value="${state.teamId}" placeholder="예: 7K3P2X">
+      <label class="field-label" for="nickname">닉네임 (팀장에게 표시될 이름)</label>
+      <input type="text" id="nickname" maxlength="20" value="${state.nickname}" placeholder="예: 콘텐츠_박">
+      <button class="primary" id="startBtn" ${state.submitting ? "disabled" : ""}>${state.submitting ? "확인 중…" : "검사 시작"}</button>
+    </div>
+  `;
+}
+
+/* ---------------- 화면: 퀴즈 ---------------- */
+function renderQuiz() {
+  const total = QUESTIONS.length;
+  const idx = state.qIndex;
+  const pct = Math.round(((idx) / total) * 100);
+  const q = QUESTIONS[idx];
+  const selected = state.answers[idx];
+
+  const likertLabels = ["전혀 아니다", "", "보통", "", "매우 그렇다"];
+
+  return `
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="progress-label mono">${idx + 1} / ${total}</div>
+    <div class="question-text">${q.text}</div>
+    <div class="likert-row">
+      ${[1,2,3,4,5].map(v => `<button class="likert-btn ${selected === v ? "selected" : ""}" data-val="${v}">${v}</button>`).join("")}
+    </div>
+    <div class="likert-labels"><span>${likertLabels[0]}</span><span>${likertLabels[4]}</span></div>
+    <div class="nav-row">
+      ${idx > 0 ? `<button class="ghost" id="prevBtn">이전</button>` : ""}
+    </div>
+  `;
+}
+
+/* ---------------- 화면: 결과 ---------------- */
+function renderResult() {
+  const info = TYPE_INFO[state.mainType];
+  const wingInfo = TYPE_INFO[state.wing];
+  return `
+    <div class="eyebrow">TEAM DIAGNOSTIC · RESULT</div>
+    <h1>${state.nickname}님의 유형</h1>
+    <div class="card">
+      <div class="result-badge">
+        <div class="result-number mono">${state.mainType}</div>
+        <div>
+          <div class="result-nick">${info.nick}</div>
+          <div class="result-wing mono">WING ${state.wing} · ${wingInfo.nick}</div>
+        </div>
+      </div>
+      <div class="result-line">${info.line}</div>
+      <div class="consent-row">
+        <input type="checkbox" id="consentBox" ${state.consent ? "checked" : ""}>
+        <span>내 유형과 닉네임을 팀 리포트에 함께 공개하는 데 동의합니다. 동의하지 않아도 팀 전체 집계에는 반영되며, 개인 결과만 비공개로 처리됩니다.</span>
+      </div>
+      ${state.errorMsg ? `<div class="error-box">${state.errorMsg}</div>` : ""}
+      <button class="primary" id="submitBtn" ${state.submitting ? "disabled" : ""}>${state.submitting ? "제출 중…" : "팀에 제출하기"}</button>
+    </div>
+  `;
+}
+
+/* ---------------- 화면: 제출 완료 ---------------- */
+function renderSubmitted() {
+  return `
+    <div class="eyebrow">TEAM DIAGNOSTIC · DONE</div>
+    <div class="success-icon">✓</div>
+    <h1>제출 완료</h1>
+    <p class="lead">${state.teamName ? `'${state.teamName}' 팀에 ` : ""}응답이 저장되었습니다. 팀 리포트는 팀장이 확인합니다.</p>
+  `;
+}
+
+/* ============================================================
+ * 이벤트 바인딩
+ * ========================================================== */
+function bindEvents() {
+  const startBtn = document.getElementById("startBtn");
+  if (startBtn) startBtn.addEventListener("click", onStart);
+
+  const teamCodeInput = document.getElementById("teamCode");
+  if (teamCodeInput) teamCodeInput.addEventListener("input", (e) => { state.teamId = e.target.value.toUpperCase(); });
+
+  const nicknameInput = document.getElementById("nickname");
+  if (nicknameInput) nicknameInput.addEventListener("input", (e) => { state.nickname = e.target.value; });
+
+  document.querySelectorAll(".likert-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.answers[state.qIndex] = Number(btn.dataset.val);
+      if (state.qIndex < QUESTIONS.length - 1) {
+        state.qIndex += 1;
+      } else {
+        computeResult();
+        state.screen = "result";
+      }
+      render();
+    });
+  });
+
+  const prevBtn = document.getElementById("prevBtn");
+  if (prevBtn) prevBtn.addEventListener("click", () => { state.qIndex -= 1; render(); });
+
+  const consentBox = document.getElementById("consentBox");
+  if (consentBox) consentBox.addEventListener("change", (e) => { state.consent = e.target.checked; });
+
+  const submitBtn = document.getElementById("submitBtn");
+  if (submitBtn) submitBtn.addEventListener("click", onSubmit);
+}
+
+/* ============================================================
+ * 로직
+ * ========================================================== */
+async function onStart() {
+  state.errorMsg = "";
+  if (!/^[A-Z0-9]{6}$/.test(state.teamId)) {
+    state.errorMsg = "팀 코드 6자리를 정확히 입력해 주세요.";
+    render();
+    return;
+  }
+  if (!state.nickname.trim()) {
+    state.errorMsg = "닉네임을 입력해 주세요.";
+    render();
+    return;
+  }
+
+  state.submitting = true;
+  render();
+
+  try {
+    const res = await callBackend({ action: "checkTeam", team_id: state.teamId });
+    if (!res.ok) {
+      state.errorMsg = res.error === "team_not_found"
+        ? "해당 팀 코드를 찾을 수 없습니다. 코드를 다시 확인해 주세요."
+        : "확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+      state.submitting = false;
+      render();
+      return;
+    }
+    state.teamName = res.team_name;
+    state.submitting = false;
+    state.screen = "quiz";
+    render();
+  } catch (err) {
+    state.errorMsg = "서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.";
+    state.submitting = false;
+    render();
+  }
+}
+
+function computeResult() {
+  const sums = { 1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0 };
+  QUESTIONS.forEach((q, i) => { sums[q.type] += state.answers[i]; });
+
+  let main = 1;
+  for (let t = 2; t <= 9; t++) if (sums[t] > sums[main]) main = t;
+
+  const left = main === 1 ? 9 : main - 1;
+  const right = main === 9 ? 1 : main + 1;
+  const wing = sums[left] >= sums[right] ? left : right;
+
+  state.mainType = main;
+  state.wing = wing;
+  state._scores = sums; // 백엔드 전송용 원점수
+}
+
+async function onSubmit() {
+  state.errorMsg = "";
+  state.submitting = true;
+  render();
+
+  try {
+    const res = await callBackend({
+      action: "submitResponse",
+      team_id: state.teamId,
+      nickname: state.nickname,
+      main_type: state.mainType,
+      wing: state.wing,
+      scores: state._scores,
+      consent_individual: state.consent,
+    });
+    if (!res.ok) {
+      state.errorMsg = "제출에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+      state.submitting = false;
+      render();
+      return;
+    }
+    state.submitting = false;
+    state.screen = "submitted";
+    render();
+  } catch (err) {
+    state.errorMsg = "서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.";
+    state.submitting = false;
+    render();
+  }
+}
+
+/* CORS 프리플라이트를 피하려면 Content-Type을 지정하지 않고 문자열을 그대로 보낼 것 */
+async function callBackend(payload) {
+  const res = await fetch(BACKEND_URL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+render();
+</script>
+</body>
+</html>
