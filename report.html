@@ -95,6 +95,11 @@
   /* --- 다양성 게이지 --- */
   .diversity-track{ position:relative; height:8px; background:var(--grid); border-radius:4px; margin:10px 0 6px; }
   .diversity-marker{ position:absolute; top:-4px; width:16px; height:16px; border-radius:50%; background:var(--steel); border:2px solid #fff; box-shadow:0 0 0 1px var(--steel); transform:translateX(-50%); }
+  /* --- 공개 동의 팀원 목록 --- */
+  .member-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--grid); font-size:13.5px; }
+  .member-row:last-child{ border-bottom:none; }
+  .member-row .name{ color:var(--ink); font-weight:500; }
+  .member-row .type{ color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12.5px; }
   /* --- 마찰 카드 --- */
   .friction-card{
     border:1px solid var(--grid);
@@ -164,7 +169,7 @@ const BACKEND_URL = "PUT_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 const TYPE_NICK = {1:"개혁가",2:"조력가",3:"성취자",4:"예술가",5:"탐구자",6:"충실한 사람",7:"열정가",8:"도전자",9:"평화주의자"};
 const CENTER_COLOR = { gut: "#B8563A", heart: "#6E6584", head: "#3C5069" };
-const CENTER_NAME = { gut: "장(Gut)", heart: "가슴(Heart)", head: "머리(Head)" };
+const CENTER_NAME = { gut: "몸으로 반응", heart: "감정으로 반응", head: "생각으로 반응" };
 
 /* ============================================================
  * 상태
@@ -295,7 +300,12 @@ function renderComposition(report) {
       </div>
       <div style="height:16px"></div>
       <div class="card">
-        <div class="meta-line" style="margin-bottom:8px;">중심 비율</div>
+        <div class="meta-line" style="margin-bottom:8px;">이름을 공개한 팀원</div>
+        ${renderNamedMembers(b)}
+      </div>
+      <div style="height:16px"></div>
+      <div class="card">
+        <div class="meta-line" style="margin-bottom:8px;">중심 비율 — 이 팀이 주로 어떤 방식으로 반응하는지</div>
         ${centerBar}
       </div>
       <div style="height:16px"></div>
@@ -307,6 +317,22 @@ function renderComposition(report) {
       </div>
     </section>
   `;
+}
+
+function renderNamedMembers(b) {
+  if (!b.namedMembers || b.namedMembers.length === 0) {
+    return `<p style="font-size:13px; color:var(--ink-soft); margin:0;">이름 공개에 동의한 팀원이 아직 없습니다. 검사 시 동의한 사람만 여기 표시됩니다.</p>`;
+  }
+  const rows = b.namedMembers.map((m) => `
+    <div class="member-row">
+      <span class="name">${escapeHtml(m.nickname)}</span>
+      <span class="type">${m.main_type}번 · ${TYPE_NICK[m.main_type]}</span>
+    </div>
+  `).join("");
+  const anonNote = b.anonymousCount > 0
+    ? `<div class="meta-line" style="margin-top:10px; margin-bottom:0;">비공개 ${b.anonymousCount}명은 이름 없이 전체 집계에만 반영됩니다.</div>`
+    : "";
+  return rows + anonNote;
 }
 
 function renderFriction(report) {
@@ -360,17 +386,17 @@ function renderPressure(report) {
       <div class="gauge-col">
         ${gaugeSVG(b.totalLoad, maxLoad, "#3C5069")}
         <div class="gauge-value mono">${b.totalLoad.toFixed(1)}</div>
-        <div class="gauge-label">평시</div>
+        <div class="gauge-label">평시<br><span style="font-size:10.5px;">지금 이대로</span></div>
       </div>
       <div class="gauge-col">
         ${gaugeSVG(d.pressure.totalLoad, maxLoad, "#B8563A")}
         <div class="gauge-value mono">${d.pressure.totalLoad.toFixed(1)}</div>
-        <div class="gauge-label">마감 임박</div>
+        <div class="gauge-label">마감 임박<br><span style="font-size:10.5px;">다들 예민해진 상태</span></div>
       </div>
       <div class="gauge-col">
         ${gaugeSVG(c.totalLoad, maxLoad, "#B8563A")}
         <div class="gauge-value mono">${c.totalLoad.toFixed(1)}</div>
-        <div class="gauge-label">위기 상황</div>
+        <div class="gauge-label">위기 상황<br><span style="font-size:10.5px;">급박한 상황</span></div>
       </div>
     </div>
   `;
@@ -386,13 +412,17 @@ function renderPressure(report) {
   return `
     <section>
       <div class="sheet-no">S-04</div>
-      <h2>압박 시뮬레이션 — 마찰 총량</h2>
+      <h2>마감이 다가오면 팀은 어떻게 달라질까</h2>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin:0 0 16px; line-height:1.6;">
+        아래 세 그래프는 같은 팀을 두고 '지금 이대로', '마감을 앞두고 다들 예민해졌을 때', '정말 급한 위기 상황일 때'를 각각 가정해서 갈등 가능성을 계산해 본 것입니다.
+        숫자 자체의 크기는 팀마다 기준이 달라 절대적인 의미는 없고, 오른쪽으로 갈수록(마감 임박, 위기 상황) 바늘이 얼마나 더 움직이는지를 보면 됩니다.
+      </p>
       <div class="card">
         ${gauges}
-        <div class="meta-line" style="margin-bottom:0;">마감 임박 시 중심 이동 — ${centerShiftText}</div>
+        <div class="meta-line" style="margin-bottom:0;">마감이 다가오면 — ${centerShiftText}</div>
       </div>
       <div style="height:20px"></div>
-      <h2 style="font-size:15px;">마감 임박 시 새로 등장한 마찰</h2>
+      <h2 style="font-size:15px;">마감이 다가오면 새로 생기는 갈등</h2>
       ${emergentCards}
     </section>
   `;
@@ -482,63 +512,4 @@ function formatDate(iso) {
   } catch (e) { return ""; }
 }
 
-/* ============================================================
- * 이벤트 & 데이터 로딩
- * ========================================================== */
-function bindEvents() {
-  const retryBtn = document.getElementById("retryBtn");
-  if (retryBtn) retryBtn.addEventListener("click", () => loadReport(false));
-
-  const printBtn = document.getElementById("printBtn");
-  if (printBtn) printBtn.addEventListener("click", () => window.print());
-
-  const regenBtn = document.getElementById("regenBtn");
-  if (regenBtn) regenBtn.addEventListener("click", () => {
-    if (confirm("서술을 다시 생성하면 API 비용이 다시 발생합니다. 계속할까요?")) {
-      loadReport(true);
-    }
-  });
-}
-
-async function loadReport(forceRegenerate) {
-  state.phase = "loading";
-  render();
-  try {
-    const res = await fetch(BACKEND_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        action: "getTeamReport",
-        team_id: state.teamId,
-        leader_key: state.leaderKey,
-        force_regenerate: !!forceRegenerate,
-      }),
-    });
-    const json = await res.json();
-
-    if (json.ok) {
-      state.data = json;
-      state.phase = "ready";
-    } else if (json.error === "insufficient_responses") {
-      state.data = { current: json.current, required: json.required };
-      state.phase = "insufficient";
-    } else if (json.error === "invalid_leader_key" || json.error === "team_not_found") {
-      state.phase = "invalid";
-    } else {
-      state.errorMsg = "리포트를 생성하지 못했습니다.";
-      state.phase = "error";
-    }
-  } catch (err) {
-    state.errorMsg = "서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.";
-    state.phase = "error";
-  }
-  render();
-}
-
-if (state.teamId && state.leaderKey) {
-  loadReport(false);
-} else {
-  render();
-}
-</script>
-</body>
-</html>
+/* ===========
