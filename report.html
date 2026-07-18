@@ -512,4 +512,63 @@ function formatDate(iso) {
   } catch (e) { return ""; }
 }
 
-/* ===========
+/* ============================================================
+ * 이벤트 & 데이터 로딩
+ * ========================================================== */
+function bindEvents() {
+  const retryBtn = document.getElementById("retryBtn");
+  if (retryBtn) retryBtn.addEventListener("click", () => loadReport(false));
+
+  const printBtn = document.getElementById("printBtn");
+  if (printBtn) printBtn.addEventListener("click", () => window.print());
+
+  const regenBtn = document.getElementById("regenBtn");
+  if (regenBtn) regenBtn.addEventListener("click", () => {
+    if (confirm("서술을 다시 생성하면 API 비용이 다시 발생합니다. 계속할까요?")) {
+      loadReport(true);
+    }
+  });
+}
+
+async function loadReport(forceRegenerate) {
+  state.phase = "loading";
+  render();
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "getTeamReport",
+        team_id: state.teamId,
+        leader_key: state.leaderKey,
+        force_regenerate: !!forceRegenerate,
+      }),
+    });
+    const json = await res.json();
+
+    if (json.ok) {
+      state.data = json;
+      state.phase = "ready";
+    } else if (json.error === "insufficient_responses") {
+      state.data = { current: json.current, required: json.required };
+      state.phase = "insufficient";
+    } else if (json.error === "invalid_leader_key" || json.error === "team_not_found") {
+      state.phase = "invalid";
+    } else {
+      state.errorMsg = "리포트를 생성하지 못했습니다.";
+      state.phase = "error";
+    }
+  } catch (err) {
+    state.errorMsg = "서버에 연결할 수 없습니다. 네트워크 상태를 확인해 주세요.";
+    state.phase = "error";
+  }
+  render();
+}
+
+if (state.teamId && state.leaderKey) {
+  loadReport(false);
+} else {
+  render();
+}
+</script>
+</body>
+</html>
