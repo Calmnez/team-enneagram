@@ -160,7 +160,7 @@
 /* ============================================================
  * 설정 — 배포 전 반드시 교체
  * ========================================================== */
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycby9QuZ9JW_bGM3phwlhUhDmYoxWQO5vBelzu6Fq84zQ0fEwGLFmy89jGRUFa95Vaew6LQ/exec";
+const BACKEND_URL = "PUT_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
 
 const TYPE_NICK = {1:"개혁가",2:"조력가",3:"성취자",4:"예술가",5:"탐구자",6:"충실한 사람",7:"열정가",8:"도전자",9:"평화주의자"};
 const CENTER_COLOR = { gut: "#B8563A", heart: "#6E6584", head: "#3C5069" };
@@ -435,11 +435,23 @@ function renderNarrative(narrative) {
   `;
 }
 
+const NARRATIVE_HEADINGS = ["한 줄 요약", "이 팀의 특징", "주의해서 볼 지점", "지금 해볼 수 있는 것"];
+
+function stripMarkdown(text) {
+  return String(text)
+    .replace(/^#{1,6}\s*/gm, "")      // # 헤더 기호 제거
+    .replace(/\*\*(.+?)\*\*/g, "$1")  // **볼드** 제거
+    .replace(/\*(.+?)\*/g, "$1")      // *이탤릭* 제거
+    .replace(/^-{3,}\s*$/gm, "")      // --- 구분선 제거
+    .replace(/^[-*]\s+/gm, "");       // - 목록 기호 제거
+}
+
 function formatNarrative(text) {
-  const lines = (text || "").split(/\n+/).filter((l) => l.trim());
+  const cleaned = stripMarkdown(text || "");
+  const lines = cleaned.split(/\n+/).filter((l) => l.trim());
   return lines.map((line) => {
     const trimmed = line.trim();
-    if (/^\(?[1-5]\)?[.\)]?\s/.test(trimmed) && trimmed.length < 40) {
+    if (NARRATIVE_HEADINGS.includes(trimmed)) {
       return `<div class="heading-line">${escapeHtml(trimmed)}</div>`;
     }
     return `<p>${escapeHtml(trimmed)}</p>`;
